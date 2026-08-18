@@ -3,73 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bussola e Meteo Mare</title>
+    <title>Meteo e Bussola Vento</title>
     <style>
-        body { font-family: system-ui, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: #1e293b; padding: 1.5rem; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 320px; }
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            background-color: #eef2f3; 
+            padding: 20px; 
+            color: #333;
+        }
+        .card { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            max-width: 350px; 
+            margin: 0 auto; 
+        }
+        h1 { font-size: 22px; margin-bottom: 20px; color: #005f99; }
+        .data { font-size: 18px; margin: 10px 0; font-weight: bold; }
         
-        /* Bussola */
-        .compass-container { position: relative; width: 200px; height: 200px; margin: 1rem auto; border-radius: 50%; border: 6px solid #334155; background: #0f172a; display: flex; justify-content: center; align-items: center; transition: transform 0.2s ease-out; }
-        .compass-ring { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, #1e293b 60%, #334155 100%); }
-        .n-marker { position: absolute; top: 10px; color: #ef4444; font-weight: bold; }
+        /* Stile della Bussola */
+        .compass-container { 
+            margin: 40px auto 20px; 
+            width: 200px; 
+            height: 200px; 
+            border-radius: 50%; 
+            border: 5px solid #005f99; 
+            position: relative; 
+            /* Sfondo con i punti cardinali */
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="%23333" font-family="sans-serif" font-weight="bold" font-size="12"><text x="45" y="15">N</text><text x="88" y="55">E</text><text x="45" y="95">S</text><text x="5" y="55">O</text></svg>') center/cover; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        }
+        /* L'ago della bussola */
+        .arrow { 
+            position: absolute; 
+            width: 6px; 
+            height: 140px; 
+            background: linear-gradient(to bottom, red 50%, #333 50%); 
+            top: 30px; 
+            left: 97px; 
+            border-radius: 3px;
+            transform-origin: center center; /* Il centro esatto di rotazione */
+            transition: transform 0.1s ease-out; 
+        }
         
-        .wind-arrow { position: absolute; width: 6px; height: 140px; transition: transform 0.5s; z-index: 2; }
-        .wind-arrow::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 30px solid #38bdf8; }
-
-        .data { margin-top: 1rem; font-size: 0.9rem; color: #94a3b8; }
-        button { background: #0284c7; color: white; border: none; padding: 0.8rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; margin-top: 1rem; width: 100%; }
+        .btn { 
+            background: #005f99; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin-top: 15px; 
+            width: 100%;
+        }
+        .note { font-size: 12px; color: #777; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="compass" class="compass-container">
-        <div class="compass-ring"></div>
-        <div class="n-marker">N</div>
-        <div id="wind-arrow" class="wind-arrow"></div>
+    <h1>Condizioni Attuali</h1>
+    
+    <div class="data" id="temp">Temperatura: -- °C</div>
+    <div class="data" id="windSpeed">Vento: -- km/h</div>
+    <div class="data" id="windDir">Dir. Vento: -- °</div>
+
+    <div class="compass-container">
+        <div class="arrow" id="arrow"></div>
     </div>
 
-    <div id="status" style="font-size: 0.8rem; color: #64748b;">Attendi il GPS...</div>
-    <button id="btn-compass">Attiva Bussola Reale</button>
+    <button class="btn" id="startBtn">Attiva Posizione e Bussola</button>
+    <p class="note">Premi il pulsante e consenti l'accesso alla posizione per caricare i dati e calibrare la bussola.</p>
 </div>
 
 <script>
-    let windAngle = 0;
-
-    // 1. Funzione per la bussola reale (Nord)
-    document.getElementById('btn-compass').addEventListener('click', () => {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission()
-                .then(response => {
-                    if (response == 'granted') {
-                        window.addEventListener('deviceorientation', (event) => {
-                            const compass = event.webkitCompassHeading || event.alpha;
-                            document.getElementById('compass').style.transform = `rotate(${-compass}deg)`;
-                        });
-                    }
-                });
-        } else {
-            window.addEventListener('deviceorientation', (event) => {
-                const compass = event.webkitCompassHeading || event.alpha;
-                document.getElementById('compass').style.transform = `rotate(${-compass}deg)`;
+    const startBtn = document.getElementById('startBtn');
+    
+    startBtn.addEventListener('click', () => {
+        // 1. Richiedi la posizione GPS
+        if (navigator.geolocation) {
+            startBtn.innerText = "Caricamento...";
+            navigator.geolocation.getCurrentPosition(position => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                getWeather(lat, lon);
+                startBtn.style.display = 'none'; // Nascondi il pulsante a caricamento completato
+            }, error => {
+                alert("Devi autorizzare la posizione per vedere il meteo locale.");
+                startBtn.innerText = "Riprova";
             });
+        } else {
+            alert("Il tuo browser non supporta la geolocalizzazione.");
+        }
+
+        // 2. Attiva la Bussola
+        // Per Android (come il tuo Samsung) usa deviceorientationabsolute
+        window.addEventListener('deviceorientationabsolute', handleOrientation);
+        
+        // Fallback per dispositivi iOS (che richiedono un permesso speciale)
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission().then(permissionState => {
+                if (permissionState === 'granted') {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+            }).catch(console.error);
+        } else {
+            // Fallback generico
+            window.addEventListener('deviceorientation', handleOrientation);
         }
     });
 
-    // 2. Caricamento Meteo e Freccia Vento
-    async function init() {
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current=wind_direction_10m`;
-                const res = await fetch(url);
-                const data = await res.json();
-                windAngle = data.current.wind_direction_10m;
-                document.getElementById('wind-arrow').style.transform = `rotate(${windAngle}deg)`;
-                document.getElementById('status').innerText = "Vento: " + windAngle + "°";
-            });
+    // Funzione per recuperare il meteo da Open-Meteo
+    function getWeather(lat, lon) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&windspeed_unit=kmh`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const weather = data.current_weather;
+                document.getElementById('temp').innerText = `Temperatura: ${weather.temperature} °C`;
+                document.getElementById('windSpeed').innerText = `Vento: ${weather.windspeed} km/h`;
+                document.getElementById('windDir').innerText = `Dir. Vento: ${weather.winddirection}°`;
+            })
+            .catch(error => console.error("Errore meteo:", error));
+    }
+
+    // Funzione per far ruotare l'ago della bussola
+    function handleOrientation(event) {
+        // Calcola i gradi (webkitCompassHeading per iOS, alpha per Android)
+        let compass = event.webkitCompassHeading || Math.abs(event.alpha - 360);
+        if (compass !== null) {
+            document.getElementById('arrow').style.transform = `rotate(${compass}deg)`;
         }
     }
-    init();
 </script>
+
 </body>
 </html>
