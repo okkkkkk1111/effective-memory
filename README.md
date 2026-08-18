@@ -143,3 +143,30 @@
 
 </body>
 </html>
+
+    function getWeather(lat, lon) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&windspeed_unit=kmh`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const weather = data.current_weather;
+                document.getElementById('temp').innerText = `Temperatura: ${weather.temperature} °C`;
+                document.getElementById('windSpeed').innerText = `Vento: ${weather.windspeed} km/h`;
+                document.getElementById('windDir').innerText = `Dir. Vento: ${weather.winddirection}°`;
+            })
+            .catch(error => console.error("Errore meteo:", error));
+    }
+
+    // Funzione per far ruotare l'ago della bussola
+    function handleOrientation(event) {
+        // Calcola i gradi (webkitCompassHeading per iOS, alpha per Android)
+        let compass = event.webkitCompassHeading || Math.abs(event.alpha - 360);
+        if (compass !== null) {
+            document.getElementById('arrow').style.transform = `rotate(${compass}deg)`;
+        }
+    }
+</script>
+
+</body>
+</html>
