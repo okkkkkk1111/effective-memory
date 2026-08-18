@@ -3,131 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meteo e Bussola Vento</title>
+    <title>Meteo e Bussola Avanzata</title>
     <style>
-        body { 
-            font-family: sans-serif; 
-            text-align: center; 
-            background-color: #eef2f3; 
-            padding: 20px; 
-            color: #333;
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Evita scorrimenti indesiderati */
         }
-        .card { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 15px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
-            max-width: 350px; 
-            margin: 0 auto; 
+        .card {
+            background-color: #161b22;
+            padding: 30px;
+            border-radius: 20px;
+            width: 340px;
+            text-align: center;
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.5), -5px -5px 15px rgba(255,255,255,0.03);
+            border: 1px solid #21262d;
         }
-        h1 { font-size: 22px; margin-bottom: 20px; color: #005f99; }
-        .data { font-size: 18px; margin: 10px 0; font-weight: bold; }
-        
-        .compass-container { 
-            margin: 40px auto 20px; 
-            width: 200px; 
-            height: 200px; 
-            border-radius: 50%; 
-            border: 5px solid #005f99; 
-            position: relative; 
-            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="%23333" font-family="sans-serif" font-weight="bold" font-size="12"><text x="45" y="15">N</text><text x="88" y="55">E</text><text x="45" y="95">S</text><text x="5" y="55">O</text></svg>') center/cover; 
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-        }
-        .arrow { 
-            position: absolute; 
-            width: 6px; 
-            height: 140px; 
-            background: linear-gradient(to bottom, red 50%, #333 50%); 
-            top: 30px; 
-            left: 97px; 
-            border-radius: 3px;
-            transform-origin: center center; 
+        .info { margin-bottom: 15px; font-size: 16px; color: #8b949e; }
+        .info-group { display: flex; align-items: center; justify-content: center; margin-bottom: 15px; gap: 8px; }
+        .compass-box {
+            width: 240px;
+            height: 240px;
+            border: 3px solid #21262d;
+            border-radius: 50%;
+            margin: 25px auto;
+            position: relative;
+            background: #11141a;
+            box-shadow: inset 5px 5px 10px rgba(0,0,0,0.5), inset -3px -3px 8px rgba(255,255,255,0.02);
+            /* Il contenitore che ruota con il telefono */
             transition: transform 0.1s ease-out; 
+            overflow: visible; /* Per far uscire leggermente la banderuola */
         }
         
-        .btn { 
-            background: #005f99; 
-            color: white; 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 8px; 
-            font-size: 16px; 
-            cursor: pointer; 
-            margin-top: 15px; 
-            width: 100%;
+        .cardinal {
+            position: absolute;
+            font-weight: bold;
+            font-size: 14px;
+            color: #58a6ff;
         }
-        .note { font-size: 12px; color: #777; margin-top: 15px; }
+        .north { top: 15px; left: 50%; transform: translateX(-50%); color: #f85149; } /* Rosso per Nord */
+        .east { right: 15px; top: 50%; transform: translateY(-50%); }
+        .south { bottom: 15px; left: 50%; transform: translateX(-50%); }
+        .west { left: 15px; top: 50%; transform: translateY(-50%); }
+
+        /* Contenitore della banderuola che ruota per il vento */
+        .vane-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            transform-origin: top left; /* Centro del compass-box */
+            transform: translate(-50%, -50%); /* Centra il contenitore stesso */
+            transition: transform 0.3s ease-out; 
+        }
+
+        /* La banderuola dettagliata (corpo metallo, punta e coda ciano) */
+        .wind-vane-visual {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180px; /* Lunghezza totale */
+            height: 40px; /* Altezza massima */
+            transform-origin: center center;
+            transform: translate(-50%, -50%);
+            /* SVG Data URI per la banderuola dettagliata */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 40"><defs><radialGradient id="gradMetal" cx="50%" cy="50%" r="50%" fx="50%" fy="50%"><stop offset="0%" style="stop-color:rgb(200,200,200);stop-opacity:1"/><stop offset="100%" style="stop-color:rgb(100,100,100);stop-opacity:1"/></radialGradient></defs><path d="M 0 20 L 40 40 L 40 25 L 140 25 L 140 40 L 180 20 L 140 0 L 140 15 L 40 15 L 40 0 Z" fill="url(#gradMetal)" stroke="%2330363d" stroke-width="1"/><path d="M 140 15 L 180 20 L 140 25 L 140 15 Z" fill="%231ff0f0"/><path d="M 0 20 L 40 40 L 40 0 L 0 20 Z" fill="%231ff0f0"/></svg>');
+            background-repeat: no-repeat;
+            background-size: contain;
+            background-position: center;
+        }
+
+        /* Icona scia di vento ciano */
+        .wind-tail-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50px;
+            height: 30px;
+            transform: translate(-50%, -50%) translate(-60px, -5px); /* Posiziona dietro la coda */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20"><path d="M 2 10 Q 5 7, 8 10 Q 11 13, 14 10 Q 17 7, 20 10 Q 23 13, 26 10 Q 28 8, 30 10" stroke="%231ff0f0" stroke-width="2" fill="none"/></svg>');
+            background-repeat: repeat-x;
+            background-size: 15px auto;
+        }
+        
+        /* Icona scia di vento piccola per il testo */
+        .wind-tail-icon-small {
+            width: 25px;
+            height: 15px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20"><path d="M 2 10 Q 5 7, 8 10 Q 11 13, 14 10 Q 17 7, 20 10 Q 23 13, 26 10 Q 28 8, 30 10" stroke="%231ff0f0" stroke-width="2" fill="none"/></svg>');
+            background-repeat: repeat-x;
+            background-size: 8px auto;
+            opacity: 0.8;
+        }
+
+        .btn {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 4px 4px 8px rgba(0,0,0,0.3), -2px -2px 6px rgba(255,255,255,0.01);
+            transition: background-color 0.2s, box-shadow 0.1s;
+        }
+        .btn:hover { background-color: #0369a1; }
+        .btn:active { box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>Condizioni Attuali</h1>
+    <div class="info" id="temp">Temperatura: -- °C</div>
+    <div class="info" id="speed">Velocità Vento: -- km/h</div>
     
-    <div class="data" id="temp">Temperatura: -- °C</div>
-    <div class="data" id="windSpeed">Vento: -- km/h</div>
-    <div class="data" id="windDir">Dir. Vento: -- °</div>
-
-    <div class="compass-container">
-        <div class="arrow" id="arrow"></div>
+    <div class="compass-box" id="compassContainer">
+        <!-- Punti cardinali fissi -->
+        <div class="cardinal north">N.</div>
+        <div class="cardinal east">E</div>
+        <div class="cardinal south">S</div>
+        <div class="cardinal west">W</div>
+        
+        <!-- La banderuola dettagliata che ruota per il vento -->
+        <div class="vane-container" id="windVane">
+            <div class="wind-tail-icon"></div>
+            <div class="wind-vane-visual"></div>
+        </div>
     </div>
-
-    <button class="btn" id="startBtn">Attiva Posizione e Bussola</button>
-    <p class="note">Premi il pulsante e consenti l'accesso alla posizione per caricare i dati e calibrare la bussola.</p>
+    
+    <div class="info-group">
+        <div class="info" id="dir">Vento: --°</div>
+        <div class="wind-tail-icon-small"></div>
+    </div>
+    <button class="btn" id="btn">Attiva Bussola Reale</button>
 </div>
 
 <script>
-    const startBtn = document.getElementById('startBtn');
+    const btn = document.getElementById('btn');
+    const compassContainer = document.getElementById('compassContainer');
+    const windVane = document.getElementById('windVane');
     
-    startBtn.addEventListener('click', () => {
+    // Angoli predefiniti per test (o per il caricamento iniziale)
+    let currentWindAngle = 137; // Come nell'immagine
+    let currentPhoneHeading = 0; // Il Nord è in alto inizialmente
+    
+    // Funzione per aggiornare la direzione della banderuola del vento
+    function updateWindDirection(angle) {
+        currentWindAngle = angle;
+        // La banderuola meteorologica mostra *da dove*.
+        // L'immagine 137° mostra la punta ciano a SE (137°).
+        // Quindi la punta ciano mostra la provenienza.
+        // La banderuola ruota all'interno del contenitore.
+        windVane.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+    }
+
+    // Funzione per aggiornare la rotazione del contenitore della bussola
+    function updateCompassRotation(heading) {
+        currentPhoneHeading = heading;
+        // Il contenitore dei punti cardinali ruota per mantenere il Nord in alto.
+        // Se il telefono gira a Est (+90°), il contenitore deve girare a Ovest (-90°) per compensare.
+        compassContainer.style.transform = `rotate(${-heading}deg)`;
+    }
+
+    btn.addEventListener('click', () => {
+        // Nascondi pulsante e mostra caricamento
+        btn.style.display = 'none';
+        document.getElementById('temp').innerText = "Caricamento...";
+        document.getElementById('speed').innerText = "";
+        document.getElementById('dir').innerText = "";
+
         if (navigator.geolocation) {
-            startBtn.innerText = "Caricamento...";
-            navigator.geolocation.getCurrentPosition(position => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                getWeather(lat, lon);
-                startBtn.style.display = 'none';
+            navigator.geolocation.getCurrentPosition(pos => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                
+                // Chiama l'API meteo (unità kmh per il vento)
+                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&windspeed_unit=kmh`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const w = data.current_weather;
+                        document.getElementById('temp').innerText = `Temperatura: ${w.temperature} °C`;
+                        document.getElementById('speed').innerText = `Velocità Vento: ${w.windspeed} km/h`;
+                        document.getElementById('dir').innerText = `Vento: ${w.winddirection}°`;
+                        updateWindDirection(w.winddirection); // Aggiorna la banderuola
+                    })
+                    .catch(error => {
+                        console.error("Errore meteo:", error);
+                        document.getElementById('temp').innerText = "Errore dati meteo.";
+                    });
             }, error => {
-                alert("Devi autorizzare la posizione per vedere il meteo locale.");
-                startBtn.innerText = "Riprova";
+                console.error("Errore geolocalizzazione:", error);
+                document.getElementById('temp').innerText = "Errore posizione.";
             });
         } else {
-            alert("Il tuo browser non supporta la geolocalizzazione.");
+            document.getElementById('temp').innerText = "Geolocalizzazione non supportata.";
         }
-
-        window.addEventListener('deviceorientationabsolute', handleOrientation);
         
+        // Attiva i sensori di orientamento per la bussola reale
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission().then(permissionState => {
-                if (permissionState === 'granted') {
-                    window.addEventListener('deviceorientation', handleOrientation);
-                }
-            }).catch(console.error);
+            // Per iOS (Safari richiede permesso esplicito)
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientationabsolute', e => {
+                            let heading = e.webkitCompassHeading || Math.abs(e.alpha - 360);
+                            if(heading) updateCompassRotation(heading);
+                        });
+                    } else {
+                        btn.style.display = 'block';
+                        btn.innerText = "Permesso negato (Riprova)";
+                    }
+                })
+                .catch(console.error);
         } else {
-            window.addEventListener('deviceorientation', handleOrientation);
+            // Per altri browser (inclusi Android Chrome con deviceorientationabsolute)
+            window.addEventListener('deviceorientationabsolute', e => {
+                let heading = e.webkitCompassHeading || Math.abs(e.alpha - 360);
+                if(heading) updateCompassRotation(heading);
+            });
         }
     });
 
-    function getWeather(lat, lon) {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&windspeed_unit=kmh`;
-        
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                const weather = data.current_weather;
-                document.getElementById('temp').innerText = `Temperatura: ${weather.temperature} °C`;
-                document.getElementById('windSpeed').innerText = `Vento: ${weather.windspeed} km/h`;
-                document.getElementById('windDir').innerText = `Dir. Vento: ${weather.winddirection}°`;
-            })
-            .catch(error => console.error("Errore meteo:", error));
-    }
+    // Inizializza con un valore fisso per mostrare la banderuola (come richiesto)
+    updateWindDirection(currentWindAngle);
+    document.getElementById('dir').innerText = `Vento: ${currentWindAngle}°`;
 
-    function handleOrientation(event) {
-        let compass = event.webkitCompassHeading || Math.abs(event.alpha - 360);
-        if (compass !== null) {
-            document.getElementById('arrow').style.transform = `rotate(${compass}deg)`;
-        }
-    }
 </script>
 
 </body>
