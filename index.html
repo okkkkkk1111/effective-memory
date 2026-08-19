@@ -35,6 +35,43 @@
         <span class="absolute right-3 text-slate-400 font-bold text-base">E</span>
         <span class="absolute bottom-3 text-slate-400 font-bold text-base">S</span>
         <span class="absolute left-3 text-slate-400 font-bold text-base">O</span>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meteo Vento, Bussola & Marea Venezia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .compass-dial, .wind-arrow {
+      transition: transform 0.15s linear;
+      will-change: transform;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 select-none">
+
+  <main class="w-full max-w-md bg-slate-800 rounded-3xl shadow-2xl p-6 border border-slate-700">
+    <header class="text-center mb-4">
+      <h1 class="text-2xl font-black text-sky-400 uppercase tracking-wide">Meteo & Bussola</h1>
+      <p id="location-text" class="text-xs text-slate-400 mt-1">Rilevamento posizione in corso...</p>
+    </header>
+
+    <!-- Pulsante Attivazione Giroscopio -->
+    <button id="enable-gyro-btn" onclick="startSensors()" class="w-full mb-4 bg-sky-500 hover:bg-sky-400 text-slate-900 font-bold py-2.5 px-4 rounded-xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+      Attiva Bussola / Giroscopio
+    </button>
+
+    <!-- Visualizzatore Bussola e Vento -->
+    <div class="relative w-64 h-64 mx-auto mb-6 flex items-center justify-center overflow-hidden rounded-full border-2 border-slate-700/50 bg-slate-900/50 shadow-inner">
+      
+      <!-- Quadrante Bussola -->
+      <div id="compass-dial" class="compass-dial absolute inset-0 rounded-full flex items-center justify-center">
+        <span class="absolute top-3 text-red-500 font-black text-base">N</span>
+        <span class="absolute right-3 text-slate-400 font-bold text-base">E</span>
+        <span class="absolute bottom-3 text-slate-400 font-bold text-base">S</span>
+        <span class="absolute left-3 text-slate-400 font-bold text-base">O</span>
         <div class="absolute top-1 w-1 h-2 bg-red-500 rounded-full"></div>
       </div>
 
@@ -104,6 +141,110 @@
           () => {
             document.getElementById('location-text').textContent = 'Venezia (Posizione Standard)';
             fetchWeatherData(45.44, 12.31); // Default Venezia
+          }
+        );
+      }
+    });
+
+    // 1. API Meteo
+    async function fetchWeatherData(lat, lon) {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m`;
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        const current = data.current;
+        windDirectionDegrees = current.wind_direction_10m;
+
+        document.getElementById('temp-val').textContent = `${current.temperature_2m} °C`;
+        document.getElementById('rain-val').textContent = `${current.precipitation} mm`;
+        document.getElementById('wind-speed-val').textContent = `${current.wind_speed_10m} km/h`;
+        document.getElementById('wind-dir-val').textContent = `${windDirectionDegrees}°`;
+
+        updateCompassUI();
+      } catch (err) {
+        console.error("Errore API Meteo:", err);
+      }
+    }
+
+    // 2. API Marea Venezia (Comune di Venezia - Stazione Punta della Salute)
+    async function fetchVeneziaTideData() {
+      try {
+        const url = `https://dati.venezia.it/sites/default/files/opendata/livello/Punta_Salute.json`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data && data.length >= 2) {
+          // Ultimi due rilevamenti per determinare il trend (cresce o cala)
+          const latest = parseFloat(data[data.length - 1].VALORE);
+          const previous = parseFloat(data[data.length - 2].VALORE);
+
+          document.getElementById('tide-val').textContent = `${Math.round(latest * 100)} cm`;
+
+          const trendElem = document.getElementById('tide-trend');
+          if (latest > previous) {
+            trendElem.textContent = "▲ In crescita";
+            trendElem.className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+          } else if (latest < previous) {
+            trendElem.textContent = "▼ In calo";
+            trendElem.className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30";
+          } else {
+            trendElem.textContent = "► Stabile";
+            trendElem.className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-700 text-slate-300";
+          }
+        }
+      } catch (err) {
+        console.error("Errore API Marea:", err);
+        document.getElementById('tide-val').textContent = "N/D";
+      }
+    }
+
+    // 3. Sensori Giroscopio / Bussola
+    function startSensors() {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              window.addEventListener('deviceorientation', handleOrientation, true);
+              document.getElementById('enable-gyro-btn').classList.add('hidden');
+            }
+          })
+          .catch(console.error);
+      } else {
+        if ('ondeviceorientationabsolute' in window) {
+          window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        } else {
+          window.addEventListener('deviceorientation', handleOrientation, true);
+        }
+        document.getElementById('enable-gyro-btn').classList.add('hidden');
+      }
+    }
+
+    function handleOrientation(event) {
+      let heading = null;
+      if (event.webkitCompassHeading) {
+        heading = event.webkitCompassHeading;
+      } else if (event.alpha !== null) {
+        heading = 360 - event.alpha;
+      }
+
+      if (heading !== null) {
+        deviceHeading = heading;
+        updateCompassUI();
+      }
+    }
+
+    function updateCompassUI() {
+      const compassDial = document.getElementById('compass-dial');
+      const windArrow = document.getElementById('wind-arrow-wrapper');
+
+      compassDial.style.transform = `rotate(${-deviceHeading}deg)`;
+      const relativeWindAngle = windDirectionDegrees - deviceHeading;
+      windArrow.style.transform = `rotate(${relativeWindAngle}deg)`;
+    }
+  </script>
+</body>
+</html>
           }
         );
       }
