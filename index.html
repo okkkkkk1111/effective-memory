@@ -3,105 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meteo Vento & Giroscopio</title>
+  <title>Meteo Vento & Bussola Giroscopica</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .compass-dial {
-      transition: transform 0.2s ease-out;
-    }
-    .wind-arrow {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .compass-dial, .wind-arrow {
+      transition: transform 0.15s linear;
+      will-change: transform;
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 select-none">
 
-  <main class="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl p-6 border border-slate-700 mt-4">
-    <header class="text-center mb-6">
-      <h1 class="text-2xl font-bold text-sky-400">Stazione Vento & Giroscopio</h1>
-      <p id="location-text" class="text-sm text-slate-400 mt-1">Rilevamento posizione...</p>
+  <main class="w-full max-w-md bg-slate-800 rounded-3xl shadow-2xl p-6 border border-slate-700">
+    <header class="text-center mb-4">
+      <h1 class="text-2xl font-black text-sky-400 uppercase tracking-wide">Meteo & Bussola</h1>
+      <p id="location-text" class="text-xs text-slate-400 mt-1">Rilevamento posizione in corso...</p>
     </header>
 
-    <!-- Pulsante Permessi iOS / Attivazione Sensori -->
-    <button id="enable-gyro-btn" onclick="requestOrientationPermission()" class="w-full mb-6 bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-4 rounded-xl shadow transition hidden">
+    <!-- Pulsante Attivazione Giroscopio (Sempre visibile all'inizio per sbloccare i sensori) -->
+    <button id="enable-gyro-btn" onclick="startSensors()" class="w-full mb-4 bg-sky-500 hover:bg-sky-400 text-slate-900 font-bold py-2.5 px-4 rounded-xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
       Attiva Bussola / Giroscopio
     </button>
 
-    <!-- Visualizzatore Direzione Vento Relativa -->
-    <div class="relative w-64 h-64 mx-auto mb-6 flex items-center justify-center">
-      <!-- Quadrante della Bussola (Ruota in base all'orientamento del telefono) -->
-      <div id="compass-dial" class="compass-dial absolute inset-0 rounded-full border-4 border-slate-600 bg-slate-800/80 flex items-center justify-center">
-        <span class="absolute top-2 text-red-500 font-bold text-sm">N</span>
-        <span class="absolute right-2 text-slate-400 font-bold text-sm">E</span>
-        <span class="absolute bottom-2 text-slate-400 font-bold text-sm">S</span>
-        <span class="absolute left-2 text-slate-400 font-bold text-sm">O</span>
+    <!-- Visualizzatore Bussola e Vento -->
+    <div class="relative w-64 h-64 mx-auto mb-6 flex items-center justify-center overflow-hidden rounded-full border-2 border-slate-700/50 bg-slate-900/50 shadow-inner">
+      
+      <!-- Quadrante Bussola -->
+      <div id="compass-dial" class="compass-dial absolute inset-0 rounded-full flex items-center justify-center">
+        <span class="absolute top-3 text-red-500 font-black text-base">N</span>
+        <span class="absolute right-3 text-slate-400 font-bold text-base">E</span>
+        <span class="absolute bottom-3 text-slate-400 font-bold text-base">S</span>
+        <span class="absolute left-3 text-slate-400 font-bold text-base">O</span>
+        <!-- Tacco Nord -->
+        <div class="absolute top-1 w-1 h-2 bg-red-500 rounded-full"></div>
       </div>
 
-      <!-- Freccia del Vento (Indica la direzione da cui SOFFIA il vento) -->
+      <!-- Freccia del Vento (Azzurra) -->
       <div id="wind-arrow-wrapper" class="wind-arrow absolute w-full h-full flex items-center justify-center pointer-events-none">
-        <div class="flex flex-col items-center -translate-y-16">
-          <svg class="w-10 h-10 text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
+        <div class="flex flex-col items-center -translate-y-20">
+          <svg class="w-8 h-8 text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 3l-8 18 8-4 8 4z" />
           </svg>
-          <span class="text-xs font-semibold text-sky-300 mt-1 bg-slate-900/80 px-2 py-0.5 rounded">Vento</span>
+          <span class="text-[10px] font-black tracking-wider uppercase text-sky-300 bg-slate-900/90 px-1.5 py-0.5 rounded border border-sky-500/30 mt-0.5">Vento</span>
         </div>
       </div>
 
-      <!-- Indicatore Telefono (Centro) -->
-      <div class="z-10 w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg"></div>
+      <!-- Indicatore Centro Telefono -->
+      <div class="z-10 w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-md"></div>
     </div>
 
-    <!-- Dati Meteo -->
-    <div class="grid grid-cols-2 gap-4 text-center">
-      <div class="bg-slate-700/50 p-3 rounded-xl border border-slate-600">
-        <span class="text-xs text-slate-400 uppercase tracking-wider block">Temperatura</span>
-        <span id="temp-val" class="text-2xl font-bold text-amber-400">-- °C</span>
+    <!-- Dati Meteo Griglia -->
+    <div class="grid grid-cols-2 gap-3 text-center">
+      <div class="bg-slate-700/40 p-3 rounded-2xl border border-slate-700">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Temperatura</span>
+        <span id="temp-val" class="text-xl font-extrabold text-amber-400">-- °C</span>
       </div>
-      <div class="bg-slate-700/50 p-3 rounded-xl border border-slate-600">
-        <span class="text-xs text-slate-400 uppercase tracking-wider block">Pioggia</span>
-        <span id="rain-val" class="text-2xl font-bold text-blue-400">-- mm</span>
+      <div class="bg-slate-700/40 p-3 rounded-2xl border border-slate-700">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Pioggia</span>
+        <span id="rain-val" class="text-xl font-extrabold text-blue-400">-- mm</span>
       </div>
-      <div class="bg-slate-700/50 p-3 rounded-xl border border-slate-600">
-        <span class="text-xs text-slate-400 uppercase tracking-wider block">Velocità Vento</span>
-        <span id="wind-speed-val" class="text-2xl font-bold text-emerald-400">-- km/h</span>
+      <div class="bg-slate-700/40 p-3 rounded-2xl border border-slate-700">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Velocità Vento</span>
+        <span id="wind-speed-val" class="text-xl font-extrabold text-emerald-400">-- km/h</span>
       </div>
-      <div class="bg-slate-700/50 p-3 rounded-xl border border-slate-600">
-        <span class="text-xs text-slate-400 uppercase tracking-wider block">Provenienza Vento</span>
-        <span id="wind-dir-val" class="text-2xl font-bold text-sky-400">--°</span>
+      <div class="bg-slate-700/40 p-3 rounded-2xl border border-slate-700">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Direzione Vento</span>
+        <span id="wind-dir-val" class="text-xl font-extrabold text-sky-400">--°</span>
       </div>
     </div>
 
-    <p id="orientation-info" class="text-xs text-center text-slate-500 mt-4">
-      Punta il telefono in avanti. La bussola si allineerà al Nord geografico.
+    <p id="orientation-info" class="text-[11px] text-center text-slate-400 mt-4 leading-tight">
+      Tieni il telefono orizzontale. Se la bussola non ruota, premi "Attiva Bussola".
     </p>
   </main>
 
   <script>
-    let windDirectionDegrees = 0; // Direzione reale del vento (0° = da Nord)
-    let deviceHeading = 0;        // Orientamento del dispositivo rispetto al Nord
+    let windDirectionDegrees = 0; 
+    let deviceHeading = 0;        
 
-    // 1. Inizializzazione GPS e Meteo
     window.addEventListener('load', () => {
+      // 1. GPS & Meteo
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
-            document.getElementById('location-text').textContent = `Lat: ${lat.toFixed(2)}°, Lon: ${lon.toFixed(2)}°`;
+            document.getElementById('location-text').textContent = `Coordinate: ${lat.toFixed(2)}°, ${lon.toFixed(2)}°`;
             await fetchWeatherData(lat, lon);
-            initOrientation();
           },
-          (err) => {
-            document.getElementById('location-text').textContent = 'Errore accesso GPS.';
-            console.error(err);
+          () => {
+            document.getElementById('location-text').textContent = 'GPS non disponibile. Uso dati standard.';
+            fetchWeatherData(41.90, 12.49); // Fallback Roma
           }
         );
-      } else {
-        document.getElementById('location-text').textContent = 'Geolocalizzazione non supportata.';
       }
     });
 
-    // 2. Chiamata API Meteo (Open-Meteo - Nessuna API Key richiesta)
     async function fetchWeatherData(lat, lon) {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m`;
@@ -118,57 +116,60 @@
 
         updateCompassUI();
       } catch (err) {
-        console.error("Errore nel recupero dati meteo:", err);
+        console.error("Errore API Meteo:", err);
       }
     }
 
-    // 3. Gestione Sensore di Orientamento (Giroscopio / Magnetometro)
-    function initOrientation() {
+    // Attivazione Manuale Sensori per sbloccare le restrizioni dei browser mobile
+    function startSensors() {
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        // Necessario per iOS 13+ (Richiede azione utente)
-        document.getElementById('enable-gyro-btn').classList.remove('hidden');
+        // iOS Safari
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              window.addEventListener('deviceorientation', handleOrientation, true);
+              document.getElementById('enable-gyro-btn').classList.add('hidden');
+            } else {
+              alert("Permesso negato per i sensori.");
+            }
+          })
+          .catch(console.error);
       } else {
-        window.addEventListener('deviceorientationabsolute', handleOrientation, true) ||
-        window.addEventListener('deviceorientation', handleOrientation, true);
+        // Android / Altri Browser
+        if ('ondeviceorientationabsolute' in window) {
+          window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        } else {
+          window.addEventListener('deviceorientation', handleOrientation, true);
+        }
+        document.getElementById('enable-gyro-btn').classList.add('hidden');
       }
-    }
-
-    function requestOrientationPermission() {
-      DeviceOrientationEvent.requestPermission()
-        .then(response => {
-          if (response === 'granted') {
-            document.getElementById('enable-gyro-btn').classList.add('hidden');
-            window.addEventListener('deviceorientation', handleOrientation, true);
-          } else {
-            alert("Permesso per i sensori negato.");
-          }
-        })
-        .catch(console.error);
     }
 
     function handleOrientation(event) {
-      // Calcolo dell'azimut (Heading) rispetto al Nord
+      let heading = null;
+
       if (event.webkitCompassHeading) {
-        // iOS Safari
-        deviceHeading = event.webkitCompassHeading;
+        // iOS
+        heading = event.webkitCompassHeading;
       } else if (event.alpha !== null) {
-        // Android / Standard
-        deviceHeading = 360 - event.alpha;
+        // Android (Calcolo relativo al Nord magnetico)
+        heading = 360 - event.alpha;
       }
-      
-      updateCompassUI();
+
+      if (heading !== null) {
+        deviceHeading = heading;
+        updateCompassUI();
+      }
     }
 
-    // 4. Aggiornamento dell'Interfaccia Grafica
     function updateCompassUI() {
       const compassDial = document.getElementById('compass-dial');
       const windArrow = document.getElementById('wind-arrow-wrapper');
 
-      // Ruota il quadrante della bussola in modo che il Nord punti sempre al Nord reale
+      // Ruota il quadrante della bussola
       compassDial.style.transform = `rotate(${-deviceHeading}deg)`;
 
-      // Ruota la freccia del vento considerando l'orientamento del telefono
-      // (windDirectionDegrees è la direzione da cui proviene il vento)
+      // Calcola l'angolo relativo per la freccia del vento
       const relativeWindAngle = windDirectionDegrees - deviceHeading;
       windArrow.style.transform = `rotate(${relativeWindAngle}deg)`;
     }
